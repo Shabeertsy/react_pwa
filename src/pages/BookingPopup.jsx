@@ -32,7 +32,6 @@ const BookingPopup = ({ onClose }) => {
         <button className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl" onClick={onClose}>
           ×
         </button>
-        <div className="text-white text-base mb-5 font-medium">For enquiry complete the form</div>
         <form className="grid grid-cols-2 gap-6" onSubmit={handleSubmit}>
           <div>
             <label className="text-white block mb-1">Name</label>

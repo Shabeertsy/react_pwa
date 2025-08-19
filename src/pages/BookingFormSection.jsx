@@ -81,145 +81,146 @@ const BookingFormSection = ({ onSubmit }) => {
     });
 
   return (
-    <section className="flex justify-center py-10 mt-25">
-      <div className="container max-w-5xl w-full">
-        <form
-          onSubmit={handleSubmit}
-          className="bg-[#767676] bg-opacity-80 rounded px-8 py-6 grid grid-cols-3 gap-6 w-full items-end"
-          style={{ boxShadow: "0 4px 10px 0 rgba(0,0,0,0.1)" }}
-        >
-          {/* Column 1 */}
-          <div>
-            <label className="text-white mb-1 block font-medium">Name</label>
+    <section className="flex justify-center py-10 px-4 sm:px-6 md:px-0">
+    <div className="container max-w-5xl w-full">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-[#767676] bg-opacity-80 rounded px-4 py-6 grid grid-cols-1 md:grid-cols-3 gap-6 w-full items-end"
+        style={{ boxShadow: "0 4px 10px 0 rgba(0,0,0,0.1)" }}
+      >
+        {/* Column 1 */}
+        <div>
+          <label className="text-white mb-1 block font-medium">Name</label>
+          <input
+            name="name"
+            placeholder="Enter your name"
+            value={form.name}
+            onChange={handleChange}
+            className="bg-white px-2 py-1 w-full outline-none"
+            required
+          />
+  
+          <label className="text-white block font-medium mt-4">Pick Up Location</label>
+          <input
+            name="pickup"
+            placeholder="Enter your pickup location"
+            value={form.pickup}
+            onChange={handleChange}
+            className="bg-white px-2 py-1 w-full outline-none"
+            required
+          />
+  
+          <label className="text-white block font-medium mt-4">Return Date & Time</label>
+          <div className="flex space-x-2">
             <input
-              name="name"
-              placeholder="Enter your name"
-              value={form.name}
+              type="date"
+              name="returnDate"
+              min={form.pickupDate}
+              className="bg-white border-r border-gray-300 px-2 py-1 w-2/3 outline-none"
+              value={form.returnDate}
               onChange={handleChange}
-              className="bg-white px-2 py-1 w-full outline-none"
               required
             />
-
-            <label className="text-white block font-medium mt-4">Pick Up Location</label>
-            <input
-              name="pickup"
-              placeholder="Enter your pickup location"
-              value={form.pickup}
+            <select
+              name="returnTime"
+              className="bg-white px-2 py-1 w-1/3 outline-none"
+              value={form.returnTime}
               onChange={handleChange}
-              className="bg-white px-2 py-1 w-full outline-none"
               required
-            />
-
-            <label className="text-white block font-medium mt-4">Return Date & Time</label>
-            <div className="flex space-x-2">
-              <input
-                type="date"
-                name="returnDate"
-                min={form.pickupDate}
-                className="bg-white border-r border-gray-300 px-2 py-1 w-2/3 outline-none"
-                value={form.returnDate}
-                onChange={handleChange}
-                required
-              />
-              <select
-                name="returnTime"
-                className="bg-white px-2 py-1 w-1/3 outline-none"
-                value={form.returnTime}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Time</option>
-                {generateTimeOptions()}
-              </select>
-            </div>
+            >
+              <option value="">Time</option>
+              {generateTimeOptions()}
+            </select>
           </div>
-
-          {/* Column 2 */}
-          <div>
-            <label className="text-white block font-medium">Phone</label>
+        </div>
+  
+        {/* Column 2 */}
+        <div>
+          <label className="text-white block font-medium">Phone</label>
+          <input
+            name="phone"
+            placeholder="Enter your phone number"
+            value={form.phone}
+            onChange={handleChange}
+            className="bg-white px-2 py-1 w-full outline-none"
+            required
+          />
+  
+          <label className="text-white block font-medium mt-4">Drop Off Location</label>
+          <input
+            name="dropoff"
+            placeholder="Enter your dropoff location"
+            value={form.dropoff}
+            onChange={handleChange}
+            className="bg-white px-2 py-1 w-full outline-none"
+            required
+          />
+  
+          <label className="text-white block font-medium mt-4">Pick Up Date & Time</label>
+          <div className="flex space-x-2">
             <input
-              name="phone"
-              placeholder="Enter your phone number"
-              value={form.phone}
+              type="date"
+              name="pickupDate"
+              min={today}
+              className="bg-white border-r border-gray-300 px-2 py-1 w-2/3 outline-none"
+              value={form.pickupDate}
               onChange={handleChange}
-              className="bg-white px-2 py-1 w-full outline-none"
               required
             />
-
-            <label className="text-white block font-medium mt-4">Drop Off Location</label>
-            <input
-              name="dropoff"
-              placeholder="Enter your dropoff location"
-              value={form.dropoff}
+            <select
+              name="pickupTime"
+              className="bg-white px-2 py-1 w-1/3 outline-none"
+              value={form.pickupTime}
               onChange={handleChange}
-              className="bg-white px-2 py-1 w-full outline-none"
               required
-            />
-
-            <label className="text-white block font-medium mt-4">Pick Up Date & Time</label>
-            <div className="flex space-x-2">
-              <input
-                type="date"
-                name="pickupDate"
-                min={today}
-                className="bg-white border-r border-gray-300 px-2 py-1 w-2/3 outline-none"
-                value={form.pickupDate}
-                onChange={handleChange}
-                required
-              />
-              <select
-                name="pickupTime"
-                className="bg-white px-2 py-1 w-1/3 outline-none"
-                value={form.pickupTime}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Time</option>
-                {generateTimeOptions()}
-              </select>
-            </div>
+            >
+              <option value="">Time</option>
+              {generateTimeOptions()}
+            </select>
           </div>
-
-          {/* Column 3: Vehicle Type + Submit */}
-          <div className="flex flex-col justify-start h-full">
-            <div>
-              <label className="text-white block font-medium mt-2">Vehicle Type</label>
-              <select
-                name="vehicleType"
-                className="bg-white px-2 py-3 w-full outline-none"
-                style={{ minHeight: "48px", fontSize: "1.1rem" }}
-                value={form.vehicleType}
-                onChange={handleChange}
-                disabled={loadingTypes || !!typesError}
-                required
-              >
-                <option value="">
-                  {loadingTypes
-                    ? "Loading vehicle types..."
-                    : typesError
-                    ? "Failed to load types"
-                    : "Select vehicle type"}
+        </div>
+  
+        {/* Column 3: Vehicle Type + Submit */}
+        <div className="flex flex-col justify-start h-full">
+          <div>
+            <label className="text-white block font-medium mt-2">Vehicle Type</label>
+            <select
+              name="vehicleType"
+              className="bg-white px-2 py-3 w-full outline-none text-base"
+              style={{ minHeight: "48px" }}
+              value={form.vehicleType}
+              onChange={handleChange}
+              disabled={loadingTypes || !!typesError}
+              required
+            >
+              <option value="">
+                {loadingTypes
+                  ? "Loading vehicle types..."
+                  : typesError
+                  ? "Failed to load types"
+                  : "Select vehicle type"}
+              </option>
+              {vehicleTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.type_name} {type.seat_capacity ? `(${type.seat_capacity} seats)` : ""}
                 </option>
-                {vehicleTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.type_name} {type.seat_capacity ? `(${type.seat_capacity} seats)` : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex justify-center items-start mt-2">
-              <button
-                type="submit"
-                className="bg-[#c0404a] px-8 py-3 text-white font-semibold text-lg shadow"
-                style={{ letterSpacing: ".5px" }}
-              >
-                Search Vehicle
-              </button>
-            </div>
+              ))}
+            </select>
           </div>
-        </form>
-      </div>
-    </section>
+          <div className="flex justify-center items-start mt-2">
+            <button
+              type="submit"
+              className="bg-[#c0404a] px-8 py-3 text-white font-semibold text-lg shadow"
+              style={{ letterSpacing: ".5px" }}
+            >
+              Search Vehicle
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+  
   );
 };
 
