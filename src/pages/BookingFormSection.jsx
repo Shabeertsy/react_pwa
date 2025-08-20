@@ -3,18 +3,8 @@ import Slider from "react-slick";
 import axios from "axios";
 import { baseUrl } from "../Constants";
 
-const BookingFormSection = ({ onSubmit, onPickupChange }) => {
+const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDistanceValue, setForm, form }) => {
   const today = new Date().toISOString().split("T")[0];
-
-  const [form, setForm] = useState({
-    pickup: "",
-    dropoff: "",
-    pickupDate: today,
-    pickupTime: "",
-    returnDate: today,
-    returnTime: "",
-    vehicleType: "",
-  });
 
   const [vehicleTypes, setVehicleTypes] = useState([]);
   const [imageUrls, setImageUrls] = useState([]);
@@ -30,6 +20,54 @@ const BookingFormSection = ({ onSubmit, onPickupChange }) => {
 
   const pickupRef = useRef(null);
   const dropoffRef = useRef(null);
+
+  const fetchDistance = () => {
+    if (
+      !pickupCoords.lat ||
+      !pickupCoords.lng ||
+      !dropoffCoords.lat ||
+      !dropoffCoords.lng
+    ) {
+      setDistanceText("");
+      setDistanceValue(null);
+      return;
+    }
+
+    if (!window.google || !window.google.maps) {
+      setDistanceText("Google Maps not loaded");
+      setDistanceValue(null);
+      return;
+    }
+
+    const service = new window.google.maps.DistanceMatrixService();
+    service.getDistanceMatrix(
+      {
+        origins: [new window.google.maps.LatLng(pickupCoords.lat, pickupCoords.lng)],
+        destinations: [new window.google.maps.LatLng(dropoffCoords.lat, dropoffCoords.lng)],
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (response, status) => {
+        if (
+          status === "OK" &&
+          response.rows &&
+          response.rows.length > 0 &&
+          response.rows[0].elements &&
+          response.rows[0].elements.length > 0 &&
+          response.rows[0].elements[0].status === "OK"
+        ) {
+          const element = response.rows[0].elements[0];
+          setDistanceText(element.distance.text);
+          setDistanceValue(element.distance.value);
+        } else if (status === "OK") {
+          setDistanceText("Distance not available");
+          setDistanceValue(null);
+        } else {
+          setDistanceText("Error fetching distance");
+          setDistanceValue(null);
+        }
+      }
+    );
+  };
 
   useEffect(() => {
     const fetchVehicleTypes = async () => {
@@ -78,19 +116,23 @@ const BookingFormSection = ({ onSubmit, onPickupChange }) => {
       return;
     }
     try {
-      const response = await axios.get(`${baseUrl}api/locations/search/`, { params: { q: query, page } });
+      const response = await axios.get(`${baseUrl}api/location-search-by-map/`, { params: { q: query, page } });
       const data = response.data;
       const suggestions = Array.isArray(data.results) ? data.results : [];
       const more = data.pagination && data.pagination.more;
       if (forField === "pickup") {
         setPickupSuggestions(prev => ({
           results: page === 1 ? suggestions : [...prev.results, ...suggestions],
-          more: !!more, page, query
+          more: !!more,
+          page,
+          query,
         }));
       } else {
         setDropoffSuggestions(prev => ({
           results: page === 1 ? suggestions : [...prev.results, ...suggestions],
-          more: !!more, page, query
+          more: !!more,
+          page,
+          query,
         }));
       }
     } catch {
@@ -109,24 +151,53 @@ const BookingFormSection = ({ onSubmit, onPickupChange }) => {
     if (name === "pickup") {
       debouncedFetchPickup(value, "pickup", 1);
       setPickupCoords({ lat: null, lng: null });
-      setPickupSuggestions({ results: [], more: false, page: 1, query: value });
+      setPickupSuggestions((prev) => ({ ...prev, results: [], page: 1, query: value }));
     }
     if (name === "dropoff") {
       debouncedFetchDropoff(value, "dropoff", 1);
       setDropoffCoords({ lat: null, lng: null });
-      setDropoffSuggestions({ results: [], more: false, page: 1, query: value });
+      setDropoffSuggestions((prev) => ({ ...prev, results: [], page: 1, query: value }));
     }
   };
 
+  // Effect to auto-select when suggestions are updated
+  useEffect(() => {
+    if (pickupSuggestions.query && pickupSuggestions.results.length > 0) {
+      const matchedSuggestion = pickupSuggestions.results.find(
+        (item) => item.city.toLowerCase().includes(pickupSuggestions.query.toLowerCase())
+      );
+      if (matchedSuggestion) {
+        setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
+        setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
+        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+        if (typeof onPickupChange === "function") {
+          onPickupChange({ lat: matchedSuggestion.latitude, lng: matchedSuggestion.longitude });
+        }
+      }
+    }
+  }, [pickupSuggestions]);
+
+  useEffect(() => {
+    if (dropoffSuggestions.query && dropoffSuggestions.results.length > 0) {
+      const matchedSuggestion = dropoffSuggestions.results.find(
+        (item) => item.city.toLowerCase().includes(dropoffSuggestions.query.toLowerCase())
+      );
+      if (matchedSuggestion) {
+        setForm((prev) => ({ ...prev, dropoff: matchedSuggestion.city }));
+        setDropoffCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
+        setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
+      }
+    }
+  }, [dropoffSuggestions]);
+
   const handleSubmit = async (e) => {
-    console.log(pickupCoords,'corddsss');
-    
     e.preventDefault();
     const params = {
       lat: pickupCoords.lat ?? null,
       lng: pickupCoords.lng ?? null,
       type: form.vehicleType || null,
     };
+    fetchDistance();
 
     try {
       const response = await axios.get(`${baseUrl}api/list-owner-vehicles/`, {
@@ -145,10 +216,10 @@ const BookingFormSection = ({ onSubmit, onPickupChange }) => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickupRef.current && !pickupRef.current.contains(event.target)) {
-        setPickupSuggestions(prev => ({ ...prev, results: [] }));
+        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
       }
       if (dropoffRef.current && !dropoffRef.current.contains(event.target)) {
-        setDropoffSuggestions(prev => ({ ...prev, results: [] }));
+        setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -159,7 +230,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange }) => {
     const fetchData = async () => {
       try {
         const response = await axios.get(`${baseUrl}api/list-banner-images/`);
-        const urls = Array.isArray(response.data) ? response.data.map(item => item.url) : [];
+        const urls = Array.isArray(response.data) ? response.data.map((item) => item.url) : [];
         setImageUrls(urls);
       } catch (error) {
         console.error("API error:", error);
@@ -288,8 +359,8 @@ const BookingFormSection = ({ onSubmit, onPickupChange }) => {
                         className="p-2 hover:bg-gray-200 cursor-pointer rounded"
                         onClick={() => {
                           setForm((prev) => ({ ...prev, dropoff: item.city }));
-                          setDropoffCoords({ lat: item.latitude, lng: item.longitude });
-                          setDropoffSuggestions(prev => ({ ...prev, results: [] }));
+                          setDropoffCoords({ lat: item.lat, lng: item.lng });
+                          setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
                         }}
                       >
                         <span className="font-semibold">{item.city}</span>
