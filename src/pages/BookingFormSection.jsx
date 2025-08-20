@@ -119,6 +119,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
       const response = await axios.get(`${baseUrl}api/location-search-by-map/`, { params: { q: query, page } });
       const data = response.data;
       const suggestions = Array.isArray(data.results) ? data.results : [];
+      console.log(`Fetched suggestions for ${forField}:`, suggestions); // Debug log
       const more = data.pagination && data.pagination.more;
       if (forField === "pickup") {
         setPickupSuggestions(prev => ({
@@ -135,7 +136,8 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
           query,
         }));
       }
-    } catch {
+    } catch (error) {
+      console.error(`Error fetching suggestions for ${forField}:`, error);
       if (forField === "pickup") setPickupSuggestions({ results: [], more: false, page: 1, query: "" });
       else setDropoffSuggestions({ results: [], more: false, page: 1, query: "" });
     }
@@ -160,35 +162,50 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     }
   };
 
-  // Effect to auto-select when suggestions are updated
-  // useEffect(() => {
-  //   if (pickupSuggestions.query && pickupSuggestions.results.length > 0) {
-  //     const matchedSuggestion = pickupSuggestions.results.find(
-  //       (item) => item.city.toLowerCase().includes(pickupSuggestions.query.toLowerCase())
-  //     );
-  //     if (matchedSuggestion) {
-  //       setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
-  //       setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
-  //       setPickupSuggestions((prev) => ({ ...prev, results: [] }));
-  //       if (typeof onPickupChange === "function") {
-  //         onPickupChange({ lat: matchedSuggestion.latitude, lng: matchedSuggestion.longitude });
-  //       }
-  //     }
-  //   }
-  // }, [pickupSuggestions]);
-
-  useEffect(() => {
-    if (dropoffSuggestions.query && dropoffSuggestions.results.length > 0) {
-      const matchedSuggestion = dropoffSuggestions.results.find(
-        (item) => item.city.toLowerCase().includes(dropoffSuggestions.query.toLowerCase())
+  const handlePickupBlur = () => {
+    console.log("Pickup blur triggered, current input:", form.pickup);
+    console.log("Pickup suggestions:", pickupSuggestions.results);
+    if (form.pickup && pickupSuggestions.results.length > 0) {
+      const matchedSuggestion = pickupSuggestions.results.find(
+        (item) => item.city.toLowerCase().includes(form.pickup.toLowerCase())
       );
       if (matchedSuggestion) {
+        console.log("Matched suggestion:", matchedSuggestion);
+        setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
+        setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
+        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+        if (typeof onPickupChange === "function") {
+          onPickupChange({ lat: matchedSuggestion.latitude, lng: matchedSuggestion.longitude });
+        }
+        console.log("Updated pickup coords:", pickupCoords);
+      } else {
+        console.log("No match found for pickup input:", form.pickup);
+      }
+    } else {
+      console.log("No suggestions or input available for pickup on blur");
+    }
+  };
+
+  const handleDropoffBlur = () => {
+    console.log("Dropoff blur triggered, current input:", form.dropoff);
+    console.log("Dropoff suggestions:", dropoffSuggestions.results);
+    if (form.dropoff && dropoffSuggestions.results.length > 0) {
+      const matchedSuggestion = dropoffSuggestions.results.find(
+        (item) => item.city.toLowerCase().includes(form.dropoff.toLowerCase())
+      );
+      if (matchedSuggestion) {
+        console.log("Matched suggestion:", matchedSuggestion);
         setForm((prev) => ({ ...prev, dropoff: matchedSuggestion.city }));
         setDropoffCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
         setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
+        console.log("Updated dropoff coords:", dropoffCoords);
+      } else {
+        console.log("No match found for dropoff input:", form.dropoff);
       }
+    } else {
+      console.log("No suggestions or input available for dropoff on blur");
     }
-  }, [dropoffSuggestions]);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -198,6 +215,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
       type: form.vehicleType || null,
     };
     fetchDistance();
+    console.log("Submit params:", params);
 
     try {
       const response = await axios.get(`${baseUrl}api/list-owner-vehicles/`, {
@@ -282,35 +300,41 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
           >
             {/* Column 1 */}
             <div>
-            <input
-  name="pickup"
-  placeholder="Enter your pickup location"
-  value={form.pickup}
-  onChange={handleChange}
-  onBlur={() => {
-    if (pickupSuggestions.query && pickupSuggestions.results.length > 0) {
-      const matchedSuggestion = pickupSuggestions.results.find(
-        (item) =>
-          item.city.toLowerCase().includes(pickupSuggestions.query.toLowerCase())
-      );
-      if (matchedSuggestion) {
-        setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
-        setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
-        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
-        if (typeof onPickupChange === "function") {
-          onPickupChange({
-            lat: matchedSuggestion.latitude,
-            lng: matchedSuggestion.longitude,
-          });
-        }
-      }
-    }
-  }}
-  className="bg-white px-2 py-2 w-full outline-none rounded"
-  autoComplete="off"
-  required
-/>
-
+              <div className="relative" ref={pickupRef}>
+                <label className="text-white block font-medium">Pick Up Location</label>
+                <input
+                  name="pickup"
+                  placeholder="Enter your pickup location"
+                  value={form.pickup}
+                  onChange={handleChange}
+                  onBlur={handlePickupBlur} // Trigger auto-selection on blur
+                  className="bg-white px-2 py-2 w-full outline-none rounded"
+                  autoComplete="off"
+                  required
+                />
+                {pickupSuggestions.results.length > 0 && (
+                  <ul className="bg-white border border-gray-300 max-h-48 overflow-auto mt-1 rounded shadow-md absolute z-50 w-full">
+                    {pickupSuggestions.results.map((item) => (
+                      <li
+                        key={item.id}
+                        className="p-2 hover:bg-gray-200 cursor-pointer rounded"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, pickup: item.city }));
+                          setPickupCoords({ lat: item.lat, lng: item.lng });
+                          setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+                          if (typeof onPickupChange === "function") {
+                            onPickupChange({ lat: item.latitude, lng: item.longitude });
+                          }
+                        }}
+                      >
+                        <span className="font-semibold">{item.city}</span>
+                        {item.district && <span className="text-gray-500 text-xs ml-1">{item.district}</span>}
+                        {item.state && <span className="text-gray-400 text-xs ml-1">{item.state}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               <label className="text-white block font-medium mt-4">Return Date & Time</label>
               <div className="flex space-x-2">
@@ -336,27 +360,37 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
 
             {/* Column 2 */}
             <div>
-            <input
-  name="dropoff"
-  placeholder="Enter your dropoff location"
-  value={form.dropoff}
-  onChange={handleChange}
-  onBlur={() => {
-    if (dropoffSuggestions.query && dropoffSuggestions.results.length > 0) {
-      const matchedSuggestion = dropoffSuggestions.results.find(
-        (item) =>
-          item.city.toLowerCase().includes(dropoffSuggestions.query.toLowerCase())
-      );
-      if (matchedSuggestion) {
-        setForm((prev) => ({ ...prev, dropoff: matchedSuggestion.city }));
-        setDropoffCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
-        setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
-      }
-    }
-  }}
-  className="bg-white px-2 py-2 w-full outline-none rounded"
-  autoComplete="off"
-/>
+              <div className="relative" ref={dropoffRef}>
+                <label className="text-white block font-medium">Drop Off Location</label>
+                <input
+                  name="dropoff"
+                  placeholder="Enter your dropoff location"
+                  value={form.dropoff}
+                  onChange={handleChange}
+                  onBlur={handleDropoffBlur} // Trigger auto-selection on blur
+                  className="bg-white px-2 py-2 w-full outline-none rounded"
+                  autoComplete="off"
+                />
+                {dropoffSuggestions.results.length > 0 && (
+                  <ul className="bg-white border border-gray-300 max-h-48 overflow-auto mt-1 rounded shadow-md absolute z-50 w-full">
+                    {dropoffSuggestions.results.map((item) => (
+                      <li
+                        key={item.id}
+                        className="p-2 hover:bg-gray-200 cursor-pointer rounded"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, dropoff: item.city }));
+                          setDropoffCoords({ lat: item.lat, lng: item.lng });
+                          setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
+                        }}
+                      >
+                        <span className="font-semibold">{item.city}</span>
+                        {item.district && <span className="text-gray-500 text-xs ml-1">{item.district}</span>}
+                        {item.state && <span className="text-gray-400 text-xs ml-1">{item.state}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               <label className="text-white block font-medium mt-4">Pick Up Date & Time</label>
               <div className="flex space-x-2">
