@@ -161,21 +161,21 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
   };
 
   // Effect to auto-select when suggestions are updated
-  useEffect(() => {
-    if (pickupSuggestions.query && pickupSuggestions.results.length > 0) {
-      const matchedSuggestion = pickupSuggestions.results.find(
-        (item) => item.city.toLowerCase().includes(pickupSuggestions.query.toLowerCase())
-      );
-      if (matchedSuggestion) {
-        setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
-        setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
-        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
-        if (typeof onPickupChange === "function") {
-          onPickupChange({ lat: matchedSuggestion.latitude, lng: matchedSuggestion.longitude });
-        }
-      }
-    }
-  }, [pickupSuggestions]);
+  // useEffect(() => {
+  //   if (pickupSuggestions.query && pickupSuggestions.results.length > 0) {
+  //     const matchedSuggestion = pickupSuggestions.results.find(
+  //       (item) => item.city.toLowerCase().includes(pickupSuggestions.query.toLowerCase())
+  //     );
+  //     if (matchedSuggestion) {
+  //       setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
+  //       setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
+  //       setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+  //       if (typeof onPickupChange === "function") {
+  //         onPickupChange({ lat: matchedSuggestion.latitude, lng: matchedSuggestion.longitude });
+  //       }
+  //     }
+  //   }
+  // }, [pickupSuggestions]);
 
   useEffect(() => {
     if (dropoffSuggestions.query && dropoffSuggestions.results.length > 0) {
@@ -282,40 +282,35 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
           >
             {/* Column 1 */}
             <div>
-              <div className="relative" ref={pickupRef}>
-                <label className="text-white block font-medium">Pick Up Location</label>
-                <input
-                  name="pickup"
-                  placeholder="Enter your pickup location"
-                  value={form.pickup}
-                  onChange={handleChange}
-                  className="bg-white px-2 py-2 w-full outline-none rounded"
-                  autoComplete="off"
-                  required
-                />
-                {pickupSuggestions.results.length > 0 && (
-                  <ul className="bg-white border border-gray-300 max-h-48 overflow-auto mt-1 rounded shadow-md absolute z-50 w-full">
-                    {pickupSuggestions.results.map((item) => (
-                      <li
-                        key={item.id}
-                        className="p-2 hover:bg-gray-200 cursor-pointer rounded"
-                        onClick={() => {
-                          setForm((prev) => ({ ...prev, pickup: item.city }));
-                          setPickupCoords({ lat: item.lat, lng: item.lng });
-                          setPickupSuggestions((prev) => ({ ...prev, results: [] }));
-                          if (typeof onPickupChange === "function") {
-                            onPickupChange({ lat: item.latitude, lng: item.longitude });
-                          }
-                        }}
-                      >
-                        <span className="font-semibold">{item.city}</span>
-                        {item.district && <span className="text-gray-500 text-xs ml-1">{item.district}</span>}
-                        {item.state && <span className="text-gray-400 text-xs ml-1">{item.state}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+            <input
+  name="pickup"
+  placeholder="Enter your pickup location"
+  value={form.pickup}
+  onChange={handleChange}
+  onBlur={() => {
+    if (pickupSuggestions.query && pickupSuggestions.results.length > 0) {
+      const matchedSuggestion = pickupSuggestions.results.find(
+        (item) =>
+          item.city.toLowerCase().includes(pickupSuggestions.query.toLowerCase())
+      );
+      if (matchedSuggestion) {
+        setForm((prev) => ({ ...prev, pickup: matchedSuggestion.city }));
+        setPickupCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
+        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+        if (typeof onPickupChange === "function") {
+          onPickupChange({
+            lat: matchedSuggestion.latitude,
+            lng: matchedSuggestion.longitude,
+          });
+        }
+      }
+    }
+  }}
+  className="bg-white px-2 py-2 w-full outline-none rounded"
+  autoComplete="off"
+  required
+/>
+
 
               <label className="text-white block font-medium mt-4">Return Date & Time</label>
               <div className="flex space-x-2">
@@ -341,36 +336,27 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
 
             {/* Column 2 */}
             <div>
-              <div className="relative" ref={dropoffRef}>
-                <label className="text-white block font-medium">Drop Off Location</label>
-                <input
-                  name="dropoff"
-                  placeholder="Enter your dropoff location"
-                  value={form.dropoff}
-                  onChange={handleChange}
-                  className="bg-white px-2 py-2 w-full outline-none rounded"
-                  autoComplete="off"
-                />
-                {dropoffSuggestions.results.length > 0 && (
-                  <ul className="bg-white border border-gray-300 max-h-48 overflow-auto mt-1 rounded shadow-md absolute z-50 w-full">
-                    {dropoffSuggestions.results.map((item) => (
-                      <li
-                        key={item.id}
-                        className="p-2 hover:bg-gray-200 cursor-pointer rounded"
-                        onClick={() => {
-                          setForm((prev) => ({ ...prev, dropoff: item.city }));
-                          setDropoffCoords({ lat: item.lat, lng: item.lng });
-                          setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
-                        }}
-                      >
-                        <span className="font-semibold">{item.city}</span>
-                        {item.district && <span className="text-gray-500 text-xs ml-1">{item.district}</span>}
-                        {item.state && <span className="text-gray-400 text-xs ml-1">{item.state}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+            <input
+  name="dropoff"
+  placeholder="Enter your dropoff location"
+  value={form.dropoff}
+  onChange={handleChange}
+  onBlur={() => {
+    if (dropoffSuggestions.query && dropoffSuggestions.results.length > 0) {
+      const matchedSuggestion = dropoffSuggestions.results.find(
+        (item) =>
+          item.city.toLowerCase().includes(dropoffSuggestions.query.toLowerCase())
+      );
+      if (matchedSuggestion) {
+        setForm((prev) => ({ ...prev, dropoff: matchedSuggestion.city }));
+        setDropoffCoords({ lat: matchedSuggestion.lat, lng: matchedSuggestion.lng });
+        setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
+      }
+    }
+  }}
+  className="bg-white px-2 py-2 w-full outline-none rounded"
+  autoComplete="off"
+/>
 
               <label className="text-white block font-medium mt-4">Pick Up Date & Time</label>
               <div className="flex space-x-2">
