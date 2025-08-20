@@ -4,6 +4,7 @@ import BookingFormSection from "./pages/BookingFormSection";
 import VehicleFleet from "./pages/VehicleFleet";
 import Footer from "./pages/Footer";
 import AdBlock from "./pages/AdBlock";
+import ParentFleet from "./pages/ParentComponent";
 
 
 function App() {
@@ -13,8 +14,7 @@ function App() {
   return (
     <div className="bg-gray-100 min-h-screen">
       <Navbar />
-      <BookingFormSection onSubmit={handleSearch} />
-      <VehicleFleet />
+      <ParentFleet/>
       <AdBlock />
       <Footer />
     </div>

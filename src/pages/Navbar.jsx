@@ -21,7 +21,7 @@ const navLinks = [
 const Navbar = () => (
   <>
     {/* Desktop/Tablet Navbar */}
-    <nav className="py-4 px-4 md:px-12 bg-white drop-shadow-md z-20 fixed top-0 left-0 right-0 md:static">
+    <nav className="py-4 px-4 md:px-12 bg-white drop-shadow-md z-20 fixed z-50 top-0 left-0 right-0 md:static">
       <div className="container flex items-center justify-between md:justify-between justify-center">
         {/* Logo: Centered on mobile, left on desktop */}
         <div className="flex items-center font-bold text-2xl mx-auto md:mx-0">
@@ -62,10 +62,7 @@ const Navbar = () => (
         </a>
       ))}
     </nav>
-    {/* Spacer for mobile bottom nav */}
     <div className="md:hidden h-16" />
-    {/* Spacer for desktop nav */}
-    <div className="hidden md:block h-20" />
   </>
 );
 
