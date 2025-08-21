@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Slider from "react-slick";
 import axios from "axios";
 import { baseUrl } from "../Constants";
+import Loader from "../components/Loader";
 
 const suggestionCache = new Map();
 
@@ -69,7 +70,6 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
   useEffect(() => {
     if (!window.google || !window.google.maps) {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
@@ -473,10 +473,10 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
                         key={item.id}
                         className="p-2 hover:bg-gray-200 cursor-pointer rounded"
                         onMouseDown={() => {
-                          setForm((prev) => ({ ...prev, pickup: item.city })); // Set exact city from suggestion
-                          setSuggestionSelected((prev) => ({ ...prev, pickup: true })); // Mark as selected
-                          fetchPlaceDetails(item.id, "pickup"); // Fetch coordinates
-                          setPickupSuggestions((prev) => ({ ...prev, results: [] })); // Clear suggestions immediately
+                          setForm((prev) => ({ ...prev, pickup: item.city })); 
+                          setSuggestionSelected((prev) => ({ ...prev, pickup: true })); 
+                          fetchPlaceDetails(item.id, "pickup"); 
+                          setPickupSuggestions((prev) => ({ ...prev, results: [] })); 
                         }}
                       >
                         <span className="font-semibold">{item.city}</span>
@@ -524,7 +524,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
                     autoComplete="off"
                   />
                   {isLoadingSuggestions.dropoff && (
-                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">Loading...</span>
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500">Loading....</span>
                   )}
                 </div>
                 {dropoffSuggestions.results.length > 0 && (
