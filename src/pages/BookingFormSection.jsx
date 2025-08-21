@@ -5,9 +5,6 @@ import { baseUrl } from "../Constants";
 
 const suggestionCache = new Map();
 
-
-
-
 // Levenshtein distance function for typo correction
 const levenshteinDistance = (a, b) => {
   const matrix = Array(b.length + 1)
@@ -27,8 +24,6 @@ const levenshteinDistance = (a, b) => {
   }
   return matrix[b.length][a.length];
 };
-
-
 
 const correctedCity = (query, suggestions) => {
   if (!suggestions || suggestions.length === 0) {
@@ -53,8 +48,6 @@ const correctedCity = (query, suggestions) => {
   return { city: query, placeId: null };
 };
 
-
-
 const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDistanceValue, setForm, form }) => {
   const today = new Date().toISOString().split("T")[0];
 
@@ -68,6 +61,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
   const [dropoffCoords, setDropoffCoords] = useState({ lat: null, lng: null });
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState({ pickup: false, dropoff: false });
   const [searchResults, setSearchResults] = useState([]);
+  const [suggestionSelected, setSuggestionSelected] = useState({ pickup: false, dropoff: false });
 
   const pickupRef = useRef(null);
   const dropoffRef = useRef(null);
@@ -75,6 +69,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
   useEffect(() => {
     if (!window.google || !window.google.maps) {
       const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places`;
       script.async = true;
       script.defer = true;
       document.head.appendChild(script);
@@ -124,8 +119,6 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     );
   };
 
-
-
   useEffect(() => {
     const fetchVehicleTypes = async () => {
       setLoadingTypes(true);
@@ -152,8 +145,6 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     };
     fetchVehicleTypes();
   }, []);
-
-
 
   const fetchLocationSuggestions = useCallback(async (query, forField, page = 1) => {
     if (!query || query.length < 2) {
@@ -306,64 +297,69 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     );
   };
 
-
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-
+    // Reset suggestionSelected when user types to allow new suggestions
     if (name === "pickup") {
+      setSuggestionSelected((prev) => ({ ...prev, pickup: false }));
       fetchLocationSuggestions(value, "pickup", 1);
       setPickupCoords({ lat: null, lng: null });
     }
     if (name === "dropoff") {
+      setSuggestionSelected((prev) => ({ ...prev, dropoff: false }));
       fetchLocationSuggestions(value, "dropoff", 1);
       setDropoffCoords({ lat: null, lng: null });
     }
   };
 
-
-
   const handlePickupBlur = async () => {
-    console.log("handlePickupBlur called", { pickup: form.pickup });
+    console.log("handlePickupBlur called", { pickup: form.pickup, suggestionSelected: suggestionSelected.pickup });
+    // Completely skip blur processing if a suggestion was selected
+    if (suggestionSelected.pickup) {
+      setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+      return;
+    }
+    // Only validate if no suggestion was selected and input is non-empty
     if (form.pickup && form.pickup.length >= 2) {
       const suggestions = await fetchLocationSuggestions(form.pickup, "pickup", 1);
-      console.log("pickupSuggestions after fetch:", { suggestions });
       if (suggestions.length > 0) {
         const corrected = correctedCity(form.pickup, suggestions);
         setForm((prev) => ({ ...prev, pickup: corrected.city }));
         if (corrected.placeId) {
           fetchPlaceDetails(corrected.placeId, "pickup");
         }
-        setPickupSuggestions((prev) => ({ ...prev, results: [] }));
       } else {
         console.log("No suggestions found for pickup:", form.pickup);
         alert("Please enter a valid location in India.");
       }
+      setPickupSuggestions((prev) => ({ ...prev, results: [] }));
     }
   };
 
-
-
   const handleDropoffBlur = async () => {
-    console.log("handleDropoffBlur called", { dropoff: form.dropoff });
+    console.log("handleDropoffBlur called", { dropoff: form.dropoff, suggestionSelected: suggestionSelected.dropoff });
+    // Completely skip blur processing if a suggestion was selected
+    if (suggestionSelected.dropoff) {
+      setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
+      return;
+    }
+    // Only validate if no suggestion was selected and input is non-empty
     if (form.dropoff && form.dropoff.length >= 2) {
       const suggestions = await fetchLocationSuggestions(form.dropoff, "dropoff", 1);
-      console.log("dropoffSuggestions after fetch:", { suggestions });
       if (suggestions.length > 0) {
         const corrected = correctedCity(form.dropoff, suggestions);
         setForm((prev) => ({ ...prev, dropoff: corrected.city }));
         if (corrected.placeId) {
           fetchPlaceDetails(corrected.placeId, "dropoff");
         }
-        setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
       } else {
         console.log("No suggestions found for dropoff:", form.dropoff);
         alert("Please enter a valid location in India.");
       }
+      setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
     }
   };
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -386,7 +382,6 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     }
   };
 
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickupRef.current && !pickupRef.current.contains(event.target)) {
@@ -399,8 +394,6 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-
 
   useEffect(() => {
     const fetchData = async () => {
@@ -415,14 +408,11 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     fetchData();
   }, []);
 
-
-
   const generateTimeOptions = () =>
     [...Array(24)].map((_, i) => {
       const time = `${String(i).padStart(2, "0")}:00`;
       return <option key={i} value={time}>{time}</option>;
     });
-
 
   const sliderSettings = {
     dots: true,
@@ -434,8 +424,6 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
     arrows: false,
   };
 
-
-  
   return (
     <section className="relative w-screen md:h-[70vh] lg:h-[70vh] overflow-hidden">
       <Slider {...sliderSettings} className="w-screen md:h-[70vh] lg:h-[70vh]">
@@ -484,10 +472,11 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
                       <li
                         key={item.id}
                         className="p-2 hover:bg-gray-200 cursor-pointer rounded"
-                        onClick={() => {
-                          setForm((prev) => ({ ...prev, pickup: item.city }));
-                          fetchPlaceDetails(item.id, "pickup");
-                          setPickupSuggestions((prev) => ({ ...prev, results: [] }));
+                        onMouseDown={() => {
+                          setForm((prev) => ({ ...prev, pickup: item.city })); // Set exact city from suggestion
+                          setSuggestionSelected((prev) => ({ ...prev, pickup: true })); // Mark as selected
+                          fetchPlaceDetails(item.id, "pickup"); // Fetch coordinates
+                          setPickupSuggestions((prev) => ({ ...prev, results: [] })); // Clear suggestions immediately
                         }}
                       >
                         <span className="font-semibold">{item.city}</span>
@@ -544,10 +533,11 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
                       <li
                         key={item.id}
                         className="p-2 hover:bg-gray-200 cursor-pointer rounded"
-                        onClick={() => {
-                          setForm((prev) => ({ ...prev, dropoff: item.city }));
-                          fetchPlaceDetails(item.id, "dropoff");
-                          setDropoffSuggestions((prev) => ({ ...prev, results: [] }));
+                        onMouseDown={() => {
+                          setForm((prev) => ({ ...prev, dropoff: item.city })); // Set exact city from suggestion
+                          setSuggestionSelected((prev) => ({ ...prev, dropoff: true })); // Mark as selected
+                          fetchPlaceDetails(item.id, "dropoff"); // Fetch coordinates
+                          setDropoffSuggestions((prev) => ({ ...prev, results: [] })); // Clear suggestions immediately
                         }}
                       >
                         <span className="font-semibold">{item.city}</span>
