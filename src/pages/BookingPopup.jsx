@@ -8,11 +8,12 @@ import {
 } from "firebase/auth";
 import app from "../firebaseconfig";
 import { baseUrl } from "../Constants";
+import axios from "axios";
 
 const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicle }) => {
   const getInitialForm = () => {
     const defaultForm = {
-      name: "",
+      client_name: "",
       phone: "",
       pickup: "",
       dropoff: "",
@@ -20,7 +21,8 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
       pickupTime: "",
       returnDate: "",
       returnTime: "",
-      tripType: "one-way", // Default trip type
+      tripType: "",
+      view_points: "",
     };
 
     if (
@@ -46,22 +48,59 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
   };
 
   const [form, setForm] = useState(getInitialForm);
-  const [step, setStep] = useState("form"); // 'form' or 'otp'
+  const [step, setStep] = useState("form");
   const [otp, setOtp] = useState(new Array(6).fill(""));
   const [verificationId, setVerificationId] = useState(null);
   const [error, setError] = useState("");
   const [recaptchaReady, setRecaptchaReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [bypassAuth, setBypassAuth] = useState(true);
+  const [tripTypes, setTripTypes] = useState([]);
 
   const otpRefs = useRef([]);
   const recaptchaRef = useRef(null);
   const auth = getAuth(app);
 
   useEffect(() => {
+    const fetchTripTypes = async () => {
+      try {
+        const response = await axios.get(`${baseUrl}api/list-trip-types/`, {
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = response.data;
+        if (Array.isArray(data)) {
+          setTripTypes(data);
+          if (data.length > 0 && !form.tripType) {
+            setForm((prev) => ({ ...prev, tripType: data[0].value }));
+          }
+        } else {
+          setError("Failed to fetch trip types.");
+        }
+      } catch (err) {
+        setError("Error fetching trip types: " + (err?.message || ""));
+      }
+    };
+    fetchTripTypes();
+  }, []);
+
+  useEffect(() => {
     setForm(getInitialForm());
   }, [filledData]);
 
   useEffect(() => {
+    if (bypassAuth) {
+      setRecaptchaReady(true);
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+          window.recaptchaVerifier = null;
+        } catch (error) {
+          // ignore
+        }
+      }
+      return;
+    }
+
     if (!recaptchaRef.current) {
       setError("reCAPTCHA container not found.");
       return;
@@ -72,7 +111,6 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
         window.recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaRef.current, {
           size: "normal",
           callback: () => {
-            console.log("reCAPTCHA verified");
             setRecaptchaReady(true);
           },
           "expired-callback": () => {
@@ -103,11 +141,11 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
           window.recaptchaVerifier.clear();
           window.recaptchaVerifier = null;
         } catch (error) {
-          console.log("Error clearing reCAPTCHA:", error);
+          // ignore
         }
       }
     };
-  }, [auth, recaptchaRef]);
+  }, [auth, recaptchaRef, bypassAuth]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -124,6 +162,17 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
     }
   };
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -132,6 +181,11 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
     if (!form.phone || form.phone.length < 10) {
       setError("Please enter a valid phone number.");
       setLoading(false);
+      return;
+    }
+
+    if (bypassAuth) {
+      await handleBooking();
       return;
     }
 
@@ -147,7 +201,6 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
         ? form.phone
         : "+91" + form.phone;
 
-      console.log("Sending OTP to:", phoneNumber);
       const confirmationResult = await signInWithPhoneNumber(
         auth,
         phoneNumber,
@@ -158,7 +211,6 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
       setStep("otp");
       setOtp(new Array(6).fill(""));
     } catch (err) {
-      console.error("Authentication error:", err);
       if (err?.code === "auth/invalid-app-credential") {
         setError("Invalid app credential. Please check your Firebase configuration.");
       } else if (err?.code === "auth/internal-error") {
@@ -183,6 +235,69 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
     }
   };
 
+  const handleBooking = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const pickupDateFormatted = formatDate(form.pickupDate);
+      const returnDateFormatted = formatDate(form.returnDate);
+
+      const tripStartDate = pickupDateFormatted || "";
+      const tripEndDate = returnDateFormatted || "";
+
+      const bookingPayload = {
+        phone_number: form.phone,
+        trip_type: form.tripType,
+        owner_vehicle: vehicle?.id,
+        trip_start_date: tripStartDate,
+        trip_end_date: tripEndDate,
+        from_location: form.pickup,
+        to_location: form.dropoff,
+        is_from_trip: !!form.returnDate,
+        view_points: form.view_points,
+        client_name:form.client_name
+      };
+
+      const response = await fetch(`${baseUrl}api/book-vehicle/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingPayload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.success === false) {
+        let errMsg = "Booking failed";
+        if (data && data.errors) {
+          if (data.errors.trip_start_date) {
+            errMsg += `: Start Date - ${data.errors.trip_start_date.join(", ")}`;
+          }
+          if (data.errors.trip_end_date) {
+            errMsg += `: End Date - ${data.errors.trip_end_date.join(", ")}`;
+          }
+          // Accept both view_points and viewpoints for error reporting
+          if (data.errors.view_points) {
+            errMsg += `: Viewpoints - ${data.errors.view_points.join(", ")}`;
+          }
+          if (data.errors.viewpoints) {
+            errMsg += `: Viewpoints - ${data.errors.viewpoints.join(", ")}`;
+          }
+        }
+        setError(errMsg);
+        setLoading(false);
+        return;
+      }
+
+      onClose();
+      alert("Booking successful!");
+    } catch (err) {
+      setError("Booking failed: " + (err?.message || ""));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleVerifyOtp = async () => {
     setError("");
     setLoading(true);
@@ -197,32 +312,7 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
     try {
       const credential = PhoneAuthProvider.credential(verificationId, code);
       await signInWithCredential(auth, credential);
-
-      // Format dates for backend compatibility
-      const tripStartDate = form.pickupDate ? `${form.pickupDate} ${form.pickupTime}:00` : "";
-      const tripEndDate = form.returnDate ? `${form.returnDate} ${form.returnTime}:00` : "";
-
-      const bookingPayload = {
-        phone_number: form.phone,
-        trip_type: form.tripType,
-        owner_vehicle: vehicle?.id, 
-        trip_start_date: tripStartDate,
-        trip_end_date: tripEndDate,
-        from_location: form.pickup,
-        to_location: form.dropoff,
-        is_from_trip: !!form.returnDate,
-      };
-
-      const response = await fetch(`${baseUrl}api/book-vehicle/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bookingPayload),
-      });
-
-      if (!response.ok) throw new Error("Booking failed");
-
-      onClose();
-      alert("Booking successful!");
+      await handleBooking();
     } catch (err) {
       if (err?.code === "auth/invalid-verification-code") {
         setError("Invalid OTP. Please check and try again.");
@@ -273,16 +363,25 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
               <h2 className="text-2xl font-semibold text-white">
                 Book Your Vehicle
               </h2>
+              {/* <label className="text-white mt-2 flex items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={bypassAuth}
+                  onChange={(e) => setBypassAuth(e.target.checked)}
+                  className="mr-2"
+                />
+                Bypass Authentication (Testing)
+              </label> */}
             </div>
 
             <form className="grid grid-cols-2 gap-6" onSubmit={handleSubmit}>
               <div>
                 <label className="block mb-1 text-white">Name</label>
                 <input
-                  name="name"
+                  name="client_name"
                   placeholder="Enter your name"
                   className="bg-white text-dark p-2 w-full rounded"
-                  value={form.name}
+                  value={form.client_name}
                   onChange={handleChange}
                   disabled={loading}
                 />
@@ -320,7 +419,37 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
                   disabled={loading}
                 />
               </div>
-             
+              <div>
+                <label className="block mb-1 text-white">Trip Type</label>
+                <select
+                  name="tripType"
+                  className="bg-white text-dark p-2 w-full rounded"
+                  value={form.tripType}
+                  onChange={handleChange}
+                  disabled={loading}
+                >
+                  <option value="" style={{ color: "#000" }} disabled>
+                    Choose a trip type
+                  </option>
+                  {tripTypes.map((type) => (
+                    <option key={type.trip_type} value={type.id} style={{ color: "#000" }}>
+                      {type.trip_type}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1 text-white">Viewpoints</label>
+                <textarea
+                  name="view_points"
+                  placeholder="Enter any viewpoints or notes"
+                  className="bg-white text-dark p-2 w-full rounded"
+                  value={form.view_points}
+                  onChange={handleChange}
+                  disabled={loading}
+                  rows="4"
+                />
+              </div>
               <div>
                 <label className="block mb-1 text-white">Pick Up Date & Time</label>
                 <div className="flex space-x-2">
@@ -403,19 +532,21 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
                   style={{ letterSpacing: ".5px" }}
                   disabled={!recaptchaReady || loading}
                 >
-                  {loading ? "Sending OTP..." : "Book Vehicle"}
+                  {loading ? "Processing..." : bypassAuth ? "Book Now" : "Book Vehicle"}
                 </button>
               </div>
             </form>
-            <div
-              id="recaptcha-container"
-              ref={recaptchaRef}
-              style={{ marginTop: 24, display: "flex", justifyContent: "center" }}
-            />
+            {!bypassAuth && (
+              <div
+                id="recaptcha-container"
+                ref={recaptchaRef}
+                style={{ marginTop: 24, display: "flex", justifyContent: "center" }}
+              />
+            )}
           </>
         )}
 
-        {step === "otp" && (
+        {step === "otp" && !bypassAuth && (
           <div>
             <button
               className="absolute top-4 right-4 text-gray-300 hover:text-white text-2xl"
