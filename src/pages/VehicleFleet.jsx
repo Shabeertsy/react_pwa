@@ -85,12 +85,12 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form,pickup
       setFetchError(null);
 
       try {
-          if (location.lat === null && pickupLat || location.lng === null && pickupLng == null) {
-            setPackages([]);
-            setLoading(false);
-            setHasMore(false);
-            return;
-          }
+          // if (location.lat === null && pickupLat || location.lng === null && pickupLng == null) {
+          //   setPackages([]);
+          //   setLoading(false);
+          //   setHasMore(false);
+          //   return;
+          // }
         const { data } = await axios.get(`${baseUrl}api/list-packages/`, {
           params: { lat: pickupLat ? pickupLat : location.lat, lng:pickupLng ?pickupLng : location.lng, page: pageToLoad, page_size: 10,
             dest_lat:dropLoc?.lat ,dest_lng:dropLoc?.lng
