@@ -5,7 +5,7 @@ import { baseUrl } from "../Constants";
 import Loader from "../components/Loader";
 import VehicleGrid from "../components/VehicleGrid";
 
-const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form,pickupLat,pickupLng }) => {
+const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form,pickupLat,pickupLng,dropLoc }) => {
   const [vehicles, setVehicles] = useState({ popular: [], normal: [] });
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -92,7 +92,9 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form,pickup
             return;
           }
         const { data } = await axios.get(`${baseUrl}api/list-packages/`, {
-          params: { lat: pickupLat ? pickupLat : location.lat, lng:pickupLng ?pickupLng : location.lng, page: pageToLoad, page_size: 10 },
+          params: { lat: pickupLat ? pickupLat : location.lat, lng:pickupLng ?pickupLng : location.lng, page: pageToLoad, page_size: 10,
+            dest_lat:dropLoc?.lat ,dest_lng:dropLoc?.lng
+           },
         });
 
         const packagesNew = Array.isArray(data.packages) ? data.packages : [];
@@ -136,7 +138,7 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form,pickup
 useEffect(()=>{
   fetchPackages(1);
 
-},[pickupLng,pickupLat,searchVehicles,location.lat, location.lng])
+},[pickupLng,pickupLat,searchVehicles,location.lat, location.lng,dropLoc.lat,dropLoc.lng])
 
 
   // Infinite scroll handler
@@ -174,8 +176,7 @@ useEffect(()=>{
     setBookingVehicle(null);
   };
 
-  // get that passed vehicle here
-  // bookingVehicle is the vehicle passed to openPopup, and is available here
+
 
   return (
     <section className="py-16 text-white bg-gray-50" ref={containerRef}>

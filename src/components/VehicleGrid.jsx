@@ -1,6 +1,10 @@
 import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+
+
 
 function calculateTotalAmount(vehicle, distanceValue) {
+
   if (!distanceValue || !vehicle) return null;
   const distanceKm = distanceValue / 1000;
   const minFare =
@@ -25,6 +29,8 @@ const PackageCard = ({
   onBook,
   images,
 }) => {
+  const navigate=useNavigate()
+
   return (
     <div className="relative bg-white mb-5 rounded-3xl shadow-xl overflow-hidden border border-gray-200 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col">
       <div className="absolute top-4 left-0 bg-gradient-to-r from-[#c0404a] to-[#e57373] text-white px-5 py-1 rounded-r-full font-semibold text-xs tracking-widest shadow-md z-10">
@@ -106,7 +112,7 @@ const PackageCard = ({
 
         {(pkg.start_location || pkg.destination) && (
           <div className="text-sm text-gray-500 mb-2">
-            {pkg.start_location && (
+            {pkg.start_location_text && (
               <p className="flex items-center gap-1">
                 <svg className="w-4 h-4 text-[#c0404a]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <rect x="3" y="5" width="18" height="12" rx="3" className="stroke-current" />
@@ -118,7 +124,7 @@ const PackageCard = ({
                 {pkg.start_location_text}
               </p>
             )}
-            {pkg.destination && (
+            {pkg.destination_text && (
               <p className="flex items-center gap-1">
                 <svg className="w-4 h-4 text-[#c0404a]" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path d="M12 21c-4.5-5-7-8.5-7-12A7 7 0 0 1 19 9c0 3.5-2.5 7-7 12z" className="stroke-current" />
@@ -166,11 +172,11 @@ const PackageCard = ({
           )}
 
           <button
-            onClick={onBook}
+          onClick={() => navigate(`/package/${pkg.id}`)}
             className="bg-gradient-to-r from-[#c0404a] to-[#e57373] text-white font-bold py-2 px-6 rounded-full shadow-lg hover:from-[#a8323a] hover:to-[#c0404a] transition-all duration-200 text-base flex items-center gap-2"
           >
             <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path d="M4 4h16v4a2 2 0 0 1-2 2h-2v4h2a2 2 0 0 1 2 2v4H4v-4a2 2 0 0 1 2-2h2v-4H6a2 2 0 0 1-2-2V4z" className="stroke-current" />
+              <path d="M4 4h16v4a2 2 0 0 1-2 2h-2v4h2a2 2 0 0 1 2 2v4H4v-4a2 2 0 0 1-2-2V4z" className="stroke-current" />
             </svg>
             Book Now
           </button>
@@ -270,6 +276,7 @@ const VehicleCard = ({
             </div>
           )}
           <button
+          onClick={onBook}
             className="bg-[#c0404a] text-white font-semibold py-2 px-4 rounded hover:bg-red-700 transition"
             type="button"
           >

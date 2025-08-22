@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Slider from "react-slick";
 import axios from "axios";
 import { baseUrl } from "../Constants";
-import Loader from "../components/Loader";
 
 const suggestionCache = new Map();
 
@@ -49,7 +48,7 @@ const correctedCity = (query, suggestions) => {
   return { city: query, placeId: null };
 };
 
-const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDistanceValue, setForm, form }) => {
+const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDistanceValue, setForm, form,onDropChange }) => {
   const today = new Date().toISOString().split("T")[0];
 
   const [vehicleTypes, setVehicleTypes] = useState([]);
@@ -284,6 +283,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
                 onPickupChange({ lat, lng });
               }
             } else {
+              onDropChange({lat,lng})
               setDropoffCoords({ lat, lng });
             }
           } else {

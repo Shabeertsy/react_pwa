@@ -4,6 +4,7 @@ import VehicleFleet from "./VehicleFleet";
 
 const ParentComponent = () => {
   const [pickupLocation, setPickupLocation] = useState({ lat: null, lng: null });
+  const [dropLocation, setDropLocation] = useState({ lat: null, lng: null });
   const [searchVehicles, setSearchVehicles] = useState([]);
   const [distanceText, setDistanceText] = useState(""); 
   const [distanceValue, setDistanceValue] = useState(null);
@@ -30,6 +31,15 @@ const ParentComponent = () => {
     }
   };
 
+
+  const handleDropChange = (coords) => {
+    if (coords.lat && coords.lng) {
+      console.log(coords,'coooooo')
+      setDropLocation(coords);
+    }
+  };
+
+
   const handleSearchSubmit = (formData) => {
     setSearchVehicles(formData);
     console.log('tesssss',formData);
@@ -44,6 +54,7 @@ const ParentComponent = () => {
       <BookingFormSection
         onSubmit={handleSearchSubmit}
         onPickupChange={handlePickupChange}
+        onDropChange={handleDropChange}
         setDistanceText={setDistanceText}
         setDistanceValue={setDistanceValue}
         form={form}
@@ -52,6 +63,7 @@ const ParentComponent = () => {
       <VehicleFleet
         pickupLat={pickupLocation.lat}
         pickupLng={pickupLocation.lng}
+        dropLoc={dropLocation}
         searchVehicles={searchVehicles}
         distanceText={distanceText}
         distanceValue={distanceValue}
