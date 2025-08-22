@@ -5,7 +5,7 @@ import { baseUrl } from "../Constants";
 import Loader from "../components/Loader";
 import VehicleGrid from "../components/VehicleGrid";
 
-const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form }) => {
+const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form,pickupLat,pickupLng }) => {
   const [vehicles, setVehicles] = useState({ popular: [], normal: [] });
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -15,6 +15,7 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form }) => 
   const [location, setLocation] = useState({ lat: null, lng: null });
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [packages, setPackages] = useState([]);
 
   const containerRef = useRef(null);
 
@@ -40,6 +41,8 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form }) => 
 
   // Fetch vehicles from API with pagination
   const fetchVehicles = async (pageToLoad = 1) => {
+    console.log('vehicleworking',location);
+
     setLoading(true);
     setFetchError(null);
 
@@ -72,9 +75,42 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form }) => 
     }
   };
 
-  console.log(bookingVehicle,'vehilce booked');
-  
-  // Reset data and fetch vehicles on location or searchVehicles change
+
+
+    // Fetch packages from API with pagination
+    const fetchPackages = async (pageToLoad = 1) => {
+      console.log('working',location);
+      
+      setLoading(true);
+      setFetchError(null);
+
+      try {
+          if (location.lat === null && pickupLat || location.lng === null && pickupLng == null) {
+            setPackages([]);
+            setLoading(false);
+            setHasMore(false);
+            return;
+          }
+        const { data } = await axios.get(`${baseUrl}api/list-packages/`, {
+          params: { lat: pickupLat ? pickupLat : location.lat, lng:pickupLng ?pickupLng : location.lng, page: pageToLoad, page_size: 10 },
+        });
+
+        const packagesNew = Array.isArray(data.packages) ? data.packages : [];
+
+        setPackages((prev) =>
+          pageToLoad === 1 ? packagesNew : [...prev, ...packagesNew]
+        );
+        setHasMore(data.has_more);
+        setLoading(false);
+      } catch (err) {
+        setFetchError("Failed to fetch packages.");
+        setLoading(false);
+        setHasMore(false);
+      }
+    };
+
+
+
   useEffect(() => {
     setPage(1);
     if (
@@ -90,10 +126,18 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form }) => 
       });
       setLoading(false);
       setHasMore(false);
-      return;
+    } else {
+      fetchVehicles(1);
     }
-    fetchVehicles(1);
+  
   }, [searchVehicles, location.lat, location.lng]);
+
+
+useEffect(()=>{
+  fetchPackages(1);
+
+},[pickupLng,pickupLat,searchVehicles,location.lat, location.lng])
+
 
   // Infinite scroll handler
   const handleScroll = () => {
@@ -146,6 +190,23 @@ const VehicleFleet = ({ searchVehicles, distanceValue, distanceText, form }) => 
           <div className="text-center text-red-500 py-10">{fetchError}</div>
         ) : (
           <>
+          {packages.length > 0 && (
+              <div>
+                <h5 className="text-lg text-dark font-bold mb-4 text-center text-gray-800">
+                  Packages
+                </h5>
+                <VehicleGrid
+                  vehicles={packages}
+                  currentImageIndex={currentImageIndex}
+                  setCurrentImageIndex={setCurrentImageIndex}
+                  onBook={openPopup}
+                  section="normal"
+                  distanceValue={distanceValue}
+                  packages={true}
+
+                />
+              </div>
+            )}
             {vehicles.popular.length > 0 && (
               <div className="mb-12">
                 <h5 className="text-xl text-dark font-bold mb-5 text-center text-gray-800">
