@@ -380,6 +380,7 @@ const BookingFormSection = ({ onSubmit, onPickupChange, setDistanceText, setDist
       console.error("Search API error:", error);
       setSearchResults([]);
     }
+
   };
 
   useEffect(() => {

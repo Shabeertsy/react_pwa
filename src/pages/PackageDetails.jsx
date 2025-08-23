@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import { baseUrl } from "../Constants";
+import BookingPopup from "./BookingPopup"; 
+
 
 function formatDate(dateStr) {
   if (!dateStr) return "";
@@ -15,6 +17,8 @@ export default function PackageDetails() {
   const [loading, setLoading] = useState(true);
   const [imgIdx, setImgIdx] = useState(0);
   const [error, setError] = useState(null);
+  const [showBooking, setShowBooking] = useState(false); 
+
 
   useEffect(() => {
     setLoading(true);
@@ -75,8 +79,13 @@ export default function PackageDetails() {
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-72 flex items-center justify-center text-gray-400 text-2xl">
-            No Image
+          <div className="w-full h-72 flex items-center justify-center bg-gray-100">
+            <img
+              src="/logo-light.png"
+              alt="Default Package"
+              className="w-32 h-32 object-contain opacity-60"
+              loading="lazy"
+            />
           </div>
         )}
         {images.length > 1 && (
@@ -224,8 +233,22 @@ export default function PackageDetails() {
             </svg>
             Back to Packages
           </Link>
+         
+          <button
+            onClick={() => setShowBooking(true)} // ⬅ open popup
+            className="bg-gradient-to-r from-[#c0404a] to-[#e57373] text-white font-bold py-2 px-8 rounded-full shadow-lg hover:from-[#a8323a] hover:to-[#c0404a] transition-all duration-200 text-base flex items-center gap-2"
+            type="button"
+          >
+            Book Now
+          </button>
+  
+
         </div>
       </div>
+       {/* Booking Popup */}
+       {showBooking && (
+        <BookingPopup pkg={pkg} onClose={() => setShowBooking(false)} />
+      )}
     </div>
   );
 }

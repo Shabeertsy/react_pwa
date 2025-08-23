@@ -10,7 +10,7 @@ import app from "../firebaseconfig";
 import { baseUrl } from "../Constants";
 import axios from "axios";
 
-const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicle }) => {
+const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicle ,pkg }) => {
   const getInitialForm = () => {
     const defaultForm = {
       client_name: "",
@@ -234,39 +234,41 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
       setLoading(false);
     }
   };
-
   const handleBooking = async () => {
     setError("");
     setLoading(true);
-
+  
+  
+  
     try {
       const pickupDateFormatted = formatDate(form.pickupDate);
       const returnDateFormatted = formatDate(form.returnDate);
-
+  
       const tripStartDate = pickupDateFormatted || "";
       const tripEndDate = returnDateFormatted || "";
-
+  
       const bookingPayload = {
         phone_number: form.phone,
         trip_type: form.tripType,
-        owner_vehicle: vehicle?.id,
+        owner_vehicle: vehicle?.id, 
         trip_start_date: tripStartDate,
         trip_end_date: tripEndDate,
-        from_location: form.pickup,
-        to_location: form.dropoff,
+        from_location: pkg && pkg.start_location_text ? pkg.start_location_text : form.pickup,
+        to_location: pkg && pkg.destination_text ? pkg.destination_text : form.dropoff, // Fix: Use destination_text for to_location
         is_from_trip: !!form.returnDate,
         view_points: form.view_points,
-        client_name:form.client_name
+        client_name: form.client_name,
+        package: pkg && pkg.id
       };
-
+  
       const response = await fetch(`${baseUrl}api/book-vehicle/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bookingPayload),
       });
-
+  
       const data = await response.json();
-
+  
       if (!response.ok || data.success === false) {
         let errMsg = "Booking failed";
         if (data && data.errors) {
@@ -276,19 +278,21 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
           if (data.errors.trip_end_date) {
             errMsg += `: End Date - ${data.errors.trip_end_date.join(", ")}`;
           }
-          // Accept both view_points and viewpoints for error reporting
           if (data.errors.view_points) {
             errMsg += `: Viewpoints - ${data.errors.view_points.join(", ")}`;
           }
           if (data.errors.viewpoints) {
             errMsg += `: Viewpoints - ${data.errors.viewpoints.join(", ")}`;
           }
+          if (data.errors.owner_vehicle) {
+            errMsg += `: Vehicle - ${data.errors.owner_vehicle.join(", ")}`; // Add vehicle error handling
+          }
         }
         setError(errMsg);
         setLoading(false);
         return;
       }
-
+  
       onClose();
       alert("Booking successful!");
     } catch (err) {
@@ -297,7 +301,6 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
       setLoading(false);
     }
   };
-
   const handleVerifyOtp = async () => {
     setError("");
     setLoading(true);
@@ -403,7 +406,7 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
                   name="pickup"
                   placeholder="Enter your pickup location"
                   className="bg-white text-dark p-2 w-full rounded"
-                  value={form.pickup}
+                  value={pkg&&pkg.start_location_text ? pkg.start_location_text : form.pickup}
                   onChange={handleChange}
                   disabled={loading}
                 />
@@ -414,7 +417,7 @@ const BookingPopup = ({ onClose, distanceText, distanceValue, filledData, vehicl
                   name="dropoff"
                   placeholder="Enter your dropoff location"
                   className="bg-white text-dark p-2 w-full rounded"
-                  value={form.dropoff}
+                  value={pkg&&pkg.destination_text ? pkg.destination_text :form.dropoff}
                   onChange={handleChange}
                   disabled={loading}
                 />

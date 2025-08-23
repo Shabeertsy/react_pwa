@@ -10,12 +10,13 @@ function calculateTotalAmount(vehicle, distanceValue) {
   const minFare =
     Number(vehicle.minimum_fare) >= 0 ? Number(vehicle.minimum_fare) : 0;
   const perKmRate = Number(vehicle.per_kilometer_rate) || 0;
+  const fixedKm = Number(vehicle.fixed_km) || 100;
 
   if (minFare > 0) {
-    if (distanceKm <= 100) {
+    if (distanceKm <= fixedKm) {
       return minFare;
     } else {
-      return minFare + Math.round((distanceKm - 100) * perKmRate);
+      return minFare + Math.round((distanceKm - fixedKm) * perKmRate);
     }
   } else {
     return Math.round(distanceKm * perKmRate);
@@ -275,13 +276,12 @@ const VehicleCard = ({
               <span className="text-xs text-gray-500 ml-1">Approx</span>
             </div>
           )}
-          <button
-          onClick={onBook}
-            className="bg-[#c0404a] text-white font-semibold py-2 px-4 rounded hover:bg-red-700 transition"
-            type="button"
-          >
-            Book Now
-          </button>
+  <button
+  onClick={() => onBook(vehicle, null)} 
+  className="bg-gradient-to-r from-[#c0404a] to-[#e57373] text-white font-bold py-2 px-6 rounded-full ..."
+>
+  Book Now
+</button>
         </div>
       </div>
     </div>
